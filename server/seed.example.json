@@ -1,0 +1,626 @@
+{
+  "services": [
+    {
+      "name": "[Mobile App - Android] User + POS App",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "[Mobile App - Android] Driver",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "[Mobile App - iOS] Driver",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "[Mobile App - iOS] User + Driver",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Dial Gateway",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Admin Customer Portal (FE)",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "safeyes-service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Maps Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Routing Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "maptiles service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Feeds Service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Banner Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Insurance Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Sensor Service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "data fraud notification",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Config Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "chatbot-service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Maps Direction Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "policy-service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Express Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "data-faceid-service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Rating Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Address Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Translation Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "global-translation-service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Data-matching-system",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "rms-coordinator",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Order Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Hail Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Price Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Communication Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Suggestion service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Merchant Recommendation Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Data-route-pooling-system",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Station Queue Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "driver-loyalty-service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Invoice Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Subscription Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Loyalty Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Launcher Service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Media Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "audit-logs",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Mission Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Order Dispatch (manager and worker)",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Geofence Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Broadcasting Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "banner-content-service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "vehicle service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Account Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Payment Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Notification Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Order Statistic Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "external-crawler-service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Driver Statistics",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Taximet Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Dynamic Pricing",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "CallCenter (cisco) Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "data map eta pickup",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Wallet Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Location Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "webhook-service",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Auth Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Order Validation Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "realtime-messaging-system",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Service Management",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Driver App (FE)",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Dispatch-service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "food-cart-service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "menu-service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "food-search",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Broadcasting",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "RMS",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Live activity",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Gumshoe",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Fraud Core",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Freight core",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Mini app",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Admin Portal",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Loyalty Core",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Gift Card Service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Biz Portal",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Green Portal",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Platform Portal",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Maps Ride Search Service",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Map Routing",
+      "tier": 1,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "MapOps",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "Car Rental",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "dagster",
+      "tier": 3,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "safeyes",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    },
+    {
+      "name": "ltr-service",
+      "tier": 2,
+      "primary_contact": "",
+      "backup_contact": ""
+    }
+  ],
+  "markets": [
+    {
+      "name": "VN / Lào",
+      "aliases": "VN, Việt Nam, Vietnam, Lào, Laos, LA",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "Ấn Độ",
+      "aliases": "Ấn Độ, India, IN",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "Kazakhstan",
+      "aliases": "Kazakhstan, KZ",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "Châu Âu (EU)",
+      "aliases": "Châu Âu, Europe, EU, NL, DK, Đan Mạch, Hà Lan",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "Philippines",
+      "aliases": "Philippines, PH",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "Indonesia",
+      "aliases": "Indonesia, ID, IDN",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "Mỹ (US)",
+      "aliases": "Mỹ, US, USA",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    },
+    {
+      "name": "CIS",
+      "aliases": "CIS",
+      "pmo": "",
+      "devops": "",
+      "backup": "",
+      "techops": "",
+      "noc": "",
+      "escalation": ""
+    }
+  ]
+}
