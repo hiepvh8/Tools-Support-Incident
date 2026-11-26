@@ -194,4 +194,4 @@ app.use((error, _req, res, _next) => {
   res.status(error.status || 500).json({ error: error.status === 413 ? 'Dữ liệu gửi lên quá lớn.' : 'Có lỗi xảy ra. Vui lòng thử lại.' });
 });
 const port = Number(process.env.PORT || 3001);
-app.listen(port, '0.0.0.0', () => console.log(`NOC Workspace listening on port ${port}`));
+app.listen(port, process.env.HOST || '0.0.0.0', () => console.log(`NOC Workspace listening on port ${port}`));

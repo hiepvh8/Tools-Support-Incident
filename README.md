@@ -43,3 +43,15 @@ Khi AI được bật, nội dung phiên, ảnh đính kèm và danh bạ liên 
 - Nhịp SLA trên giao diện tính từ thời điểm tạo bản tin trong ứng dụng, trước khi có solution. Xác nhận thời điểm thực tế đã gửi bản tin trên kênh vận hành.
 
 Ứng dụng hiện dành cho môi trường tin cậy và chưa có đăng nhập, phân quyền hoặc mã hóa dữ liệu ở cấp ứng dụng. Cần bổ sung các khả năng này trước khi triển khai rộng cho nhiều người dùng.
+
+## Cập nhật và chạy trên Windows không cần cài Node.js
+
+Trong UCRT64 hoặc Git Bash, từ thư mục dự án chạy:
+
+```bash
+git pull --ff-only origin main && cmd.exe /c Chay-NOC.bat
+```
+
+Lần chạy đầu sẽ tải Node.js 24.22.1 portable từ nodejs.org và kiểm tra SHA-256. Mỗi lần chạy sẽ cài thư viện theo lockfile, build rồi khởi chạy tại `http://localhost:3001`. Cần có Git, PowerShell và kết nối tới nodejs.org cùng npm registry. Nếu lệnh pull gặp thay đổi cục bộ hoặc xung đột, hãy xử lý trước khi chạy lại. Nhấn Ctrl+C để dừng ứng dụng.
+
+Cơ sở dữ liệu vẫn ở `data/noc.db` trong thư mục dự án. Nếu trước đây dùng gói ZIP NOC Hub, hãy sao chép tệp `app/data/noc.db` từ gói đó sang `data/noc.db` của dự án trước lần chạy đầu. Sao lưu dữ liệu hiện tại trước khi thay thế tệp đã tồn tại.
