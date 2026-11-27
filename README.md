@@ -22,7 +22,7 @@ Mở ứng dụng qua cổng 3001. Có thể đổi cổng server bằng biến 
 
 ## Kết nối AI
 
-Để phân tích hình ảnh, tạo nội dung dựa trên toàn bộ ngữ cảnh và đối chiếu alert theo ngữ nghĩa, chọn **Google Gemini** hoặc **OpenAI** trong trang **Cài đặt chung** và nhập khóa của nhà cung cấp. Mặc định Gemini dùng `gemini-2.5-flash`, OpenAI dùng `gpt-4o-mini`. Có thể nhập tên mô hình khác được nhà cung cấp và tài khoản hỗ trợ. Khóa và mô hình được lưu trong phiên chạy.
+Để phân tích hình ảnh, tạo nội dung dựa trên toàn bộ ngữ cảnh và đối chiếu alert theo ngữ nghĩa, chọn **Google Gemini** hoặc **OpenAI** trong trang **Cài đặt chung** và nhập khóa của nhà cung cấp. Mặc định Gemini dùng `gemini-2.5-flash`, OpenAI dùng `gpt-4o-mini`. Sau khi lưu khóa, ứng dụng tải danh sách mô hình từ nhà cung cấp để lựa chọn. Nếu không tải được, có thể nhập tên mô hình thủ công. Danh sách không bảo đảm hạn mức hoặc quyền phân tích ảnh, hãy dùng nút kiểm tra kết nối. Khóa và mô hình được lưu trong phiên chạy.
 
 Có thể cấu hình OpenAI bằng biến môi trường trước khi khởi động:
 

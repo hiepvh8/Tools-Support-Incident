@@ -6,7 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateReply, matchAlerts, analyzeIncident, testAIConnection } from './assistant.js';
 import { importWorkbook } from './import-workbook.js';
-import { getAIConfig, configureAI } from './ai-config.js';
+import { getAIConfig, configureAI, setAIModel, listAIModels } from './ai-config.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const databasePath = process.env.NOC_DB_PATH || path.join(root, 'data', 'noc.db');
@@ -101,6 +101,19 @@ app.put('/api/ai-key', (req, res) => {
   if (!['openai', 'gemini'].includes(provider) || (model && !/^[a-zA-Z0-9._-]{1,100}$/.test(model))) return bad(res, 'Nhà cung cấp hoặc tên mô hình không hợp lệ.');
   configureAI(provider, key, model);
   res.json({ enabled: true, provider });
+});
+app.get('/api/ai-models', async (req, res) => {
+  const config = getAIConfig();
+  if (!config || req.query.provider !== config.provider) return bad(res, 'Hãy lưu khóa của nhà cung cấp đã chọn trước khi tải mô hình.');
+  try { res.json(await listAIModels()); }
+  catch (error) { res.status(502).json({ error: error.message.startsWith('Không tải được danh sách') ? error.message : 'Không thể kết nối nhà cung cấp để tải mô hình.' }); }
+});
+app.put('/api/ai-model', (req, res) => {
+  const config = getAIConfig(), model = text(req.body.model);
+  if (!config || req.body.provider !== config.provider) return bad(res, 'Hãy lưu khóa của nhà cung cấp đã chọn trước.');
+  if (!/^[a-zA-Z0-9._-]{1,100}$/.test(model)) return bad(res, 'Tên mô hình không hợp lệ.');
+  setAIModel(model);
+  res.json({ provider: config.provider, model });
 });
 app.post('/api/ai-test', async (_req, res) => res.json(await testAIConnection()));
 app.post('/api/import-workbook', async (req, res) => {

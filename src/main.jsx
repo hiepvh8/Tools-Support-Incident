@@ -328,6 +328,31 @@ function SettingsPage({ data, refresh, toast }) {
   const [provider, setProvider] = useState(data.ai.provider || 'gemini');
   const [model, setModel] = useState(data.ai.model || (data.ai.provider === 'openai' ? 'gpt-4o-mini' : 'gemini-2.5-flash'));
   const [saving, setSaving] = useState(false);
+  const [models, setModels] = useState([]);
+  const [modelMessage, setModelMessage] = useState('Lưu khóa để tải danh sách mô hình.');
+  const [manualModel, setManualModel] = useState(false);
+  const requestId = useRef(0);
+  async function loadModels(selectedProvider, currentModel) {
+    const id = ++requestId.current;
+    setModelMessage('Đang tải danh sách mô hình...');
+    try {
+      const result = await api(`/api/ai-models?provider=${encodeURIComponent(selectedProvider)}`);
+      if (id !== requestId.current) return;
+      setModels(result.models);
+      if (!result.models.length) { setManualModel(true); setModelMessage('Không tìm thấy mô hình phù hợp. Có thể nhập tên thủ công.'); return; }
+      const selected = result.models.some(item => item.id === currentModel) ? currentModel : result.models[0].id;
+      if (selected !== currentModel) { await api('/api/ai-model', { method: 'PUT', body: { provider: selectedProvider, model: selected } }); if (id !== requestId.current) return; setModel(selected); await refresh(); }
+      setManualModel(false);
+      setModelMessage('Danh sách từ nhà cung cấp. Hãy kiểm tra kết nối sau khi chọn.');
+    } catch (error) { if (id === requestId.current) { setModels([]); setManualModel(true); setModelMessage(error.message); } }
+  }
+  useEffect(() => { if (data.ai.enabled && data.ai.provider === provider) loadModels(provider, data.ai.model); return () => { requestId.current++; }; }, []);
+  async function changeModel(selected) {
+    setModel(selected); setTestResult(null); setSaving(true);
+    try { await api('/api/ai-model', { method: 'PUT', body: { provider, model: selected } }); await refresh(); }
+    catch (error) { toast(error.message); setModel(data.ai.model || ''); }
+    finally { setSaving(false); }
+  }
   async function save(event) {
     event.preventDefault(); setSaving(true);
     try {
@@ -337,7 +362,7 @@ function SettingsPage({ data, refresh, toast }) {
   }
   async function connect(event) {
     event.preventDefault(); setSaving(true);
-    try { await api('/api/ai-key', { method: 'PUT', body: { key, provider, model } }); setKey(''); setTestResult(null); await refresh(); toast('Đã cấu hình khóa cho phiên chạy hiện tại.'); }
+    try { await api('/api/ai-key', { method: 'PUT', body: { key, provider, model } }); setKey(''); setTestResult(null); await refresh(); await loadModels(provider, model); toast('Đã lưu khóa cho phiên chạy hiện tại.'); }
     catch (error) { toast(error.message); } finally { setSaving(false); }
   }
   async function testConnection() {
@@ -350,7 +375,13 @@ function SettingsPage({ data, refresh, toast }) {
     <section className="panel settings-panel"><div className="section-title"><div><h3>Nội dung điều phối</h3><p>Mỗi dòng tương ứng với một nội dung. AI sẽ điều chỉnh theo ngữ cảnh sự cố.</p></div></div>
       <form onSubmit={save} className="settings-form"><Field label="Ba việc tiếp theo" hint="Nhập đúng 3 dòng."><textarea rows={5} value={actionsText} onChange={event => setActionsText(event.target.value)}/></Field><Field label="Câu hỏi điều phối" hint="Mỗi câu hỏi trên một dòng."><textarea rows={5} value={questionsText} onChange={event => setQuestionsText(event.target.value)}/></Field><Button type="submit" disabled={saving}>Lưu cài đặt</Button></form>
     </section>
-    <section className="panel settings-panel"><div className="section-title"><div><h3>Cấu hình AI</h3><p>Chọn nhà cung cấp để phân tích hình ảnh và biên tập nội dung. Khóa chỉ tồn tại trong phiên chạy ứng dụng.</p></div><span className="result-mode">{data.ai.enabled ? 'Đã cấu hình' : 'Chưa cấu hình'}</span></div><form onSubmit={connect} className="settings-form"><Field label="Nhà cung cấp"><select value={provider} onChange={event => { setProvider(event.target.value); setModel(event.target.value === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini'); }}><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select></Field><Field label="Mô hình"><input value={model} onChange={event => setModel(event.target.value)} /></Field><Field label="API key"><input type="password" autoComplete="off" value={key} onChange={event => setKey(event.target.value)} placeholder="Nhập khóa cho phiên hiện tại"/></Field><div className="heading-actions"><Button type="submit" disabled={!key.trim() || saving}>Lưu khóa AI</Button><Button type="button" variant="outline" disabled={!data.ai.enabled || saving} onClick={testConnection}>{saving ? 'Đang kiểm tra...' : 'Kiểm tra kết nối'}</Button></div>{testResult && <div className={testResult.ok ? 'connection-ok' : 'inline-warning'} role="status">{testResult.ok ? 'Kết nối AI thành công.' : testResult.error}</div>}</form></section>
+    <section className="panel settings-panel"><div className="section-title"><div><h3>Cấu hình AI</h3><p>Chọn nhà cung cấp, lưu khóa rồi chọn mô hình có sẵn. Khóa chỉ tồn tại trong phiên chạy ứng dụng.</p></div><span className="result-mode">{data.ai.enabled ? 'Đã cấu hình' : 'Chưa cấu hình'}</span></div><form onSubmit={connect} className="settings-form">
+      <Field label="Nhà cung cấp"><select value={provider} onChange={event => { requestId.current++; setProvider(event.target.value); setModel(event.target.value === 'gemini' ? 'gemini-2.5-flash' : 'gpt-4o-mini'); setModels([]); setManualModel(false); setModelMessage('Lưu khóa của nhà cung cấp để tải mô hình.'); setTestResult(null); }}><option value="gemini">Google Gemini</option><option value="openai">OpenAI</option></select></Field>
+      <Field label="API key"><input type="password" autoComplete="off" value={key} onChange={event => setKey(event.target.value)} placeholder="Nhập khóa cho phiên hiện tại"/></Field>
+      <div className="heading-actions"><Button type="submit" disabled={!key.trim() || saving}>Lưu khóa AI</Button><Button type="button" variant="outline" disabled={!data.ai.enabled || data.ai.provider !== provider || saving} onClick={() => loadModels(provider, model)}>Tải lại mô hình</Button></div>
+      <Field label="Mô hình" hint={modelMessage}>{models.length && !manualModel ? <select value={model} disabled={saving} onChange={event => { if (event.target.value === '__manual__') { setManualModel(true); return; } changeModel(event.target.value); }}><option value="" disabled>Chọn mô hình</option>{models.map(item => <option key={item.id} value={item.id}>{item.name} ({item.id})</option>)}<option value="__manual__">Nhập tên mô hình khác...</option></select> : <input value={model} onChange={event => setModel(event.target.value)} placeholder="Tên mô hình"/>}</Field>
+      {manualModel && data.ai.enabled && data.ai.provider === provider && <Button type="button" variant="outline" disabled={saving || !model.trim()} onClick={() => changeModel(model)}>Lưu mô hình</Button>}
+      <div className="heading-actions"><Button type="button" variant="outline" disabled={!data.ai.enabled || data.ai.provider !== provider || saving} onClick={testConnection}>{saving ? 'Đang kiểm tra...' : 'Kiểm tra kết nối'}</Button></div>{testResult && <div className={testResult.ok ? 'connection-ok' : 'inline-warning'} role="status">{testResult.ok ? 'Kết nối AI thành công.' : testResult.error}</div>}</form></section>
   </div>;
 }
 
