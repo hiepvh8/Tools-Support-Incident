@@ -59,11 +59,27 @@ async function askModel(messages, json = false) {
   const config = getAIConfig();
   if (!config) throw new Error('Chưa cấu hình AI');
   const base = config.base.replace(/\/$/, '');
-  const response = await fetch(`${base}/chat/completions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${config.key}` },
-    body: JSON.stringify({ model: config.model, messages, ...(json ? { response_format: { type: 'json_object' } } : {}) }),
-    signal: AbortSignal.timeout(45000),
+  const gemini = config.provider === 'gemini';
+  let url = `${base}/chat/completions`;
+  let headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${config.key}` };
+  let body = { model: config.model, messages, ...(json ? { response_format: { type: 'json_object' } } : {}) };
+  if (gemini) {
+    url = `${base.replace(/\/openai$/, '')}/models/${encodeURIComponent(config.model)}:generateContent`;
+    headers = { 'Content-Type': 'application/json', 'x-goog-api-key': config.key };
+    const instructions = messages.filter(message => message.role === 'system').map(message => ({ text: message.content }));
+    const contents = messages.filter(message => message.role !== 'system').map(message => ({
+      role: message.role === 'assistant' ? 'model' : 'user',
+      parts: (Array.isArray(message.content) ? message.content : [{ type: 'text', text: message.content }]).map(part => {
+        if (part.type === 'text') return { text: part.text };
+        const match = part.image_url?.url?.match(/^data:(image\/(?:png|jpeg|webp|gif));base64,([A-Za-z0-9+/=]+)$/);
+        if (!match) throw new Error('Ảnh không hợp lệ.');
+        return { inlineData: { mimeType: match[1], data: match[2] } };
+      }),
+    }));
+    body = { ...(instructions.length ? { systemInstruction: { parts: instructions } } : {}), contents, ...(json ? { generationConfig: { responseMimeType: 'application/json' } } : {}) };
+  }
+  const response = await fetch(url, {
+    method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(45000),
   });
   if (!response.ok) {
     let code = '';
@@ -73,7 +89,7 @@ async function askModel(messages, json = false) {
     throw new Error(`AI request failed (${response.status}${safeCode}; ${config.provider}, ${config.model})`);
   }
   const result = await response.json();
-  const content = result.choices?.[0]?.message?.content;
+  const content = gemini ? result.candidates?.[0]?.content?.parts?.filter(part => typeof part.text === 'string').map(part => part.text).join('') : result.choices?.[0]?.message?.content;
   if (!content || typeof content !== 'string') throw new Error('AI returned an empty response');
   return content;
 }
