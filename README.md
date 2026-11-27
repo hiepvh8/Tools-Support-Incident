@@ -22,16 +22,18 @@ Mở ứng dụng qua cổng 3001. Có thể đổi cổng server bằng biến 
 
 ## Kết nối AI
 
-Để phân tích hình ảnh, tạo nội dung dựa trên toàn bộ ngữ cảnh và đối chiếu alert theo ngữ nghĩa, nhập khóa trong trang **Cài đặt chung** hoặc cấu hình ở phía server trước khi khởi động:
+Để phân tích hình ảnh, tạo nội dung dựa trên toàn bộ ngữ cảnh và đối chiếu alert theo ngữ nghĩa, chọn **Google Gemini** hoặc **OpenAI** trong trang **Cài đặt chung** và nhập khóa của nhà cung cấp. Mặc định Gemini dùng `gemini-2.5-flash`, OpenAI dùng `gpt-4o-mini`. Có thể nhập tên mô hình khác được nhà cung cấp và tài khoản hỗ trợ. Khóa và mô hình được lưu trong phiên chạy.
+
+Có thể cấu hình OpenAI bằng biến môi trường trước khi khởi động:
 
 ```bash
 export OPENAI_API_KEY='<khóa của bạn>'
 npm run dev
 ```
 
-Khóa nhập trong giao diện chỉ lưu trong bộ nhớ của tiến trình và cần nhập lại khi khởi động lại. Không đưa khóa vào mã nguồn hoặc gửi khóa qua chat. Mặc định ứng dụng sử dụng `gpt-4o-mini`, có thể đổi bằng `OPENAI_MODEL`. `OPENAI_BASE_URL` mặc định là `https://api.openai.com/v1` và có thể thay cho một API tương thích Chat Completions. Môi trường cần cho phép kết nối HTTPS tới nhà cung cấp đã chọn.
+Khóa nhập trong giao diện chỉ lưu trong bộ nhớ của tiến trình và cần nhập lại khi khởi động lại. Không đưa khóa vào mã nguồn hoặc gửi khóa qua chat. Mặc định ứng dụng sử dụng `gpt-4o-mini`, có thể đổi bằng `OPENAI_MODEL`. `OPENAI_BASE_URL` mặc định là `https://api.openai.com/v1` và có thể thay cho một API tương thích Chat Completions. Với Gemini, có thể dùng `GEMINI_API_KEY` và tùy chọn `GEMINI_MODEL`. Môi trường cần cho phép kết nối HTTPS tới `generativelanguage.googleapis.com` cho Gemini hoặc `api.openai.com` cho OpenAI. Hạn mức và giá phụ thuộc vào nhà cung cấp và tài khoản.
 
-Khi AI được bật, nội dung phiên, ảnh đính kèm và danh bạ liên hệ được gửi tới nhà cung cấp AI để xử lý. Khi chưa có khóa hoặc kết nối AI lỗi, ứng dụng vẫn lưu phiên, tạo bản tin theo mẫu và tra alert bằng từ khóa. Chế độ này không đọc nội dung ảnh hoặc so khớp ngữ nghĩa. Kiểm tra lại nội dung trước khi gửi tới các kênh vận hành.
+Khi AI được bật, nội dung phiên, ảnh đính kèm và danh bạ liên hệ được gửi tới nhà cung cấp đã chọn để xử lý. Khi chưa có khóa hoặc kết nối AI lỗi, ứng dụng vẫn lưu phiên, tạo bản tin theo mẫu và tra alert bằng từ khóa. Chế độ này không đọc nội dung ảnh hoặc so khớp ngữ nghĩa. Kiểm tra lại nội dung trước khi gửi tới các kênh vận hành.
 
 ## Dữ liệu và sử dụng
 

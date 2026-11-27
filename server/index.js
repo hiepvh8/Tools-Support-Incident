@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { generateReply, matchAlerts, analyzeIncident } from './assistant.js';
 import { importWorkbook } from './import-workbook.js';
+import { getAIConfig, configureAI } from './ai-config.js';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const databasePath = process.env.NOC_DB_PATH || path.join(root, 'data', 'noc.db');
@@ -81,7 +82,7 @@ function inferContext(content) {
 }
 const bad = (res, message, code = 400) => res.status(code).json({ error: message });
 
-app.get('/api/bootstrap', (_req, res) => res.json({ services: getServices(), markets: getMarkets(), alerts: getAlerts(), incidents: getIncidents(), settings: getSettings(), ai: { enabled: Boolean(process.env.OPENAI_API_KEY) } }));
+app.get('/api/bootstrap', (_req, res) => res.json({ services: getServices(), markets: getMarkets(), alerts: getAlerts(), incidents: getIncidents(), settings: getSettings(), ai: { enabled: Boolean(getAIConfig()), provider: getAIConfig()?.provider || null, model: getAIConfig()?.model || null } }));
 app.put('/api/settings', (req, res) => {
   const clean = list => Array.isArray(list) ? list.map(text).filter(Boolean) : [];
   const actions = clean(req.body.actions), questions = clean(req.body.questions);
@@ -95,8 +96,11 @@ app.put('/api/ai-key', (req, res) => {
   if (!['127.0.0.1', '::1', '::ffff:127.0.0.1'].includes(address)) return bad(res, 'Chỉ có thể cấu hình AI từ máy đang chạy ứng dụng.', 403);
   const key = text(req.body.key);
   if (!key || key.length > 512 || /\s/.test(key)) return bad(res, 'Khóa AI không hợp lệ.');
-  process.env.OPENAI_API_KEY = key;
-  res.json({ enabled: true });
+  const provider = req.body.provider || 'openai';
+  const model = text(req.body.model);
+  if (!['openai', 'gemini'].includes(provider) || (model && !/^[a-zA-Z0-9._-]{1,100}$/.test(model))) return bad(res, 'Nhà cung cấp hoặc tên mô hình không hợp lệ.');
+  configureAI(provider, key, model);
+  res.json({ enabled: true, provider });
 });
 app.post('/api/import-workbook', async (req, res) => {
   const encoded = req.body.file;
