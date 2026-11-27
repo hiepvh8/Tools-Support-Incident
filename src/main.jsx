@@ -5,7 +5,7 @@ import {
   Activity, AlertCircle, AlertTriangle, ArrowDown, ArrowRight, Bell, BookOpen, Bot, Check,
   CheckCircle2, ChevronDown, ChevronRight, CircleHelp, Clipboard, Clock3, Database, FileText,
   Globe2, ImagePlus, LifeBuoy, LoaderCircle, MessageSquareText, MoreHorizontal, Pencil, Plus,
-  Search, Send, ShieldCheck, Sparkles, Trash2, UsersRound, X, Zap
+  Search, Send, ShieldCheck, Sparkles, Trash2, UsersRound, X, Zap, Settings, Upload
 } from 'lucide-react';
 import './style.css';
 
@@ -57,6 +57,10 @@ function App() {
   const [business, setBusiness] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [clock, setClock] = useState(Date.now());
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisMode, setAnalysisMode] = useState('');
+  const manualFields = useRef(new Set());
+  const latestAnalysis = useRef(null);
   const fileRef = useRef(null);
   const endRef = useRef(null);
 
@@ -67,7 +71,42 @@ function App() {
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }, [messages, busy]);
   const service = data.services.find(item => String(item.id) === String(context.service_id));
   const market = data.markets.find(item => String(item.id) === String(context.market_id));
-  const changeContext = (key, value) => setContext(current => ({ ...current, [key]: value }));
+  async function changeContext(key, value) {
+    const previous = context;
+    manualFields.current.add(key);
+    setContext(current => ({ ...current, [key]: value }));
+    if (!incident) return;
+    setBusy(true);
+    try {
+      const result = await api(`/api/incidents/${incident.id}/context`, { method: 'PATCH', body: { field: key, value } });
+      setIncident(result.incident);
+      await refresh();
+      setToast('Đã lưu thay đổi cho sự cố.');
+    } catch (error) { setContext(previous); manualFields.current.delete(key); setToast(error.message); }
+    finally { setBusy(false); }
+  }
+  useEffect(() => {
+    if (incident || busy || (!draft.trim() && !images.length)) return;
+    const controller = new AbortController();
+    const signature = JSON.stringify([draft, images]);
+    const timer = setTimeout(async () => {
+      setAnalyzing(true);
+      try {
+        const result = await api('/api/analyze-incident', { method: 'POST', signal: controller.signal, body: { text: draft, attachments: images } });
+        if (controller.signal.aborted) return;
+        latestAnalysis.current = { signature, result };
+        setAnalysisMode(result.mode);
+        if (result.mode === 'local_error') setToast('Không thể kết nối AI. Chỉ nhận diện được các thông tin có sẵn trong văn bản.');
+        setContext(current => {
+          const next = { ...current };
+          for (const field of ['service_id', 'market_id', 'severity', 'scope']) if (!manualFields.current.has(field)) next[field] = result.fields[field] || '';
+          return next;
+        });
+      } catch (error) { if (error.name !== 'AbortError') setToast(error.message); }
+      finally { if (!controller.signal.aborted) setAnalyzing(false); }
+    }, 1200);
+    return () => { clearTimeout(timer); controller.abort(); setAnalyzing(false); };
+  }, [draft, images, incident, busy]);
   const isClosed = incident?.status === 'closed';
   const next = nextUpdate(incident);
   const remainingMinutes = next ? Math.ceil((next.time.getTime() - clock) / 60000) : null;
@@ -75,6 +114,7 @@ function App() {
   function newIncident() {
     if (busy) { setToast('Vui lòng chờ yêu cầu hiện tại hoàn tất.'); return; }
     if ((draft.trim() || images.length) && !window.confirm('Nội dung chưa gửi sẽ bị bỏ. Bắt đầu sự cố mới?')) return;
+    manualFields.current = new Set(); latestAnalysis.current = null; setAnalysisMode('');
     setIncident(null); setMessages([]); setContext(blankContext); setDraft(''); setImages([]); setPage('incident');
   }
   async function openIncident(id) {
@@ -83,6 +123,7 @@ function App() {
     try {
       const result = await api(`/api/incidents/${id}`);
       setIncident(result.incident); setMessages(result.messages);
+      manualFields.current = new Set(JSON.parse(result.incident.manual_fields || '[]'));
       setContext({ service_id: result.incident.service_id || '', market_id: result.incident.market_id || '', severity: result.incident.severity === 'UNKNOWN' ? '' : result.incident.severity, scope: result.incident.scope === 'unknown' ? '' : result.incident.scope });
       setDraft(''); setImages([]); setPage('incident');
     } catch (error) { setToast(error.message); }
@@ -106,7 +147,15 @@ function App() {
     if (action !== 'create' && !incident) { setToast('Hãy tạo thông tin xử lý để bắt đầu phiên sự cố.'); return; }
     setBusy(true);
     try {
-      const result = await api('/api/chat', { method: 'POST', body: { action, incident_id: incident?.id, text: draft, attachments: images, ...context, ...confirmation } });
+      let resolvedContext = context;
+      let analysis;
+      if (action === 'create') {
+        const signature = JSON.stringify([draft, images]);
+        analysis = latestAnalysis.current?.signature === signature ? latestAnalysis.current.result : await api('/api/analyze-incident', { method: 'POST', body: { text: draft, attachments: images } });
+        resolvedContext = { ...context };
+        for (const field of ['service_id', 'market_id', 'severity', 'scope']) if (!manualFields.current.has(field)) resolvedContext[field] = analysis.fields[field] || '';
+      }
+      const result = await api('/api/chat', { method: 'POST', body: { action, incident_id: incident?.id, text: draft, attachments: images, ...resolvedContext, analysis, manual_fields: [...manualFields.current], ...confirmation } });
       setIncident(result.incident); setMessages(result.messages); setContext({ service_id: result.incident.service_id || '', market_id: result.incident.market_id || '', severity: result.incident.severity === 'UNKNOWN' ? '' : result.incident.severity, scope: result.incident.scope === 'unknown' ? '' : result.incident.scope }); setDraft(''); setImages([]); setModal(null);
       await refresh();
       if (result.mode === 'template_error') setToast('Không thể kết nối AI. Đã tạo nội dung theo mẫu để bạn tiếp tục xử lý.');
@@ -127,6 +176,7 @@ function App() {
     { id: 'lookup', label: 'Tra cứu alert', icon: Search },
     { id: 'alerts', label: 'Quản lý alert', icon: Bell },
     { id: 'contacts', label: 'Dữ liệu liên hệ', icon: UsersRound },
+    { id: 'settings', label: 'Cài đặt chung', icon: Settings },
   ];
 
   return <div className="app-shell">
@@ -140,7 +190,7 @@ function App() {
       <div className="sidebar-bottom"><div className="sidebar-help"><div className="help-icon"><LifeBuoy size={18}/></div><div><strong>Luôn sẵn sàng hỗ trợ</strong><span>Đồng hành cùng ca trực NOC</span></div></div><div className="sidebar-user"><div className="avatar">N</div><div><strong>NOC Engineer</strong><small>Không gian làm việc</small></div><MoreHorizontal size={17}/></div></div>
     </aside>
     <div className="main-shell">
-      <header className="topbar"><div className="breadcrumb">Workspace <ChevronRight size={14}/> <strong>{nav.find(item => item.id === page)?.label}</strong></div><div className="top-actions"><span className="top-status"><span className={`status-dot ${data.ai.enabled ? '' : 'muted'}`}/>{data.ai.enabled ? 'AI đã kết nối' : 'Chế độ mẫu'}</span><span className="top-divider"/><div className="top-avatar">N</div></div></header>
+      <header className="topbar"><div className="breadcrumb">Workspace <ChevronRight size={14}/> <strong>{nav.find(item => item.id === page)?.label}</strong></div><div className="top-actions"><span className="top-status"><span className={`status-dot ${data.ai.enabled ? '' : 'muted'}`}/>{data.ai.enabled ? 'Đã cấu hình AI' : 'Chế độ mẫu'}</span><span className="top-divider"/><div className="top-avatar">N</div></div></header>
       <main className={`page ${page === 'incident' ? 'incident-page' : ''}`}>
         {page === 'incident' && <>
           <div className="page-heading"><div><div className="eyebrow"><span className="eyebrow-dot"/> INCIDENT WORKSPACE</div><h1>Điều phối sự cố</h1><p>Tập trung thông tin, phối hợp xử lý và cập nhật đến các bên.</p></div><Button variant="outline" icon={Plus} onClick={newIncident}>Sự cố mới</Button></div>
@@ -171,15 +221,15 @@ function App() {
               </div>
             </section>
             <aside className="context-column">
-              <section className="panel context-panel"><div className="section-title"><div><h3>Thông tin sự cố</h3><p>Ngữ cảnh cho phiên xử lý</p></div><span className="title-icon"><FileText size={17}/></span></div>
-                <div className="context-fields"><Field label="Dịch vụ"><select value={context.service_id} disabled={isClosed} onChange={event => changeContext('service_id', event.target.value)}><option value="">{incident?.service_name && !context.service_id ? `Đã lưu: ${incident.service_name}` : 'Chọn dịch vụ'}</option>{data.services.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-                  <Field label="Thị trường"><select value={context.market_id} disabled={isClosed} onChange={event => changeContext('market_id', event.target.value)}><option value="">{incident?.market_name && !context.market_id ? `Đã lưu: ${incident.market_name}` : 'Chọn thị trường'}</option>{data.markets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
-                  <Field label="Mức độ"><select value={context.severity} disabled={isClosed} onChange={event => changeContext('severity', event.target.value)}><option value="">Chưa xác định</option>{Object.entries(severityLabel).map(([key, label]) => <option key={key} value={key}>{key} — {label}</option>)}</select></Field>
-                  <Field label="Phạm vi truyền thông"><select value={context.scope} disabled={isClosed} onChange={event => changeContext('scope', event.target.value)}><option value="">Chưa xác định</option><option value="internal">Internal</option><option value="external">External / Global</option></select></Field>
-                </div><div className="context-foot"><CircleHelp size={14}/> Thông tin được lưu khi gửi nội dung.</div>
+              <section className="panel context-panel"><div className="section-title"><div><h3>Thông tin sự cố</h3><p>{analyzing ? 'Đang phân tích sự cố...' : analysisMode === 'ai' && !incident ? 'Gợi ý từ AI · có thể chỉnh sửa' : 'Ngữ cảnh cho phiên xử lý'}</p></div><span className="title-icon"><FileText size={17}/></span></div>
+                <div className="context-fields"><Field label="Dịch vụ"><select value={context.service_id} disabled={isClosed || busy} onChange={event => changeContext('service_id', event.target.value)}><option value="">{incident?.service_name && !context.service_id ? `Đã lưu: ${incident.service_name}` : 'Chọn dịch vụ'}</option>{data.services.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+                  <Field label="Thị trường"><select value={context.market_id} disabled={isClosed || busy} onChange={event => changeContext('market_id', event.target.value)}><option value="">{incident?.market_name && !context.market_id ? `Đã lưu: ${incident.market_name}` : 'Chọn thị trường'}</option>{data.markets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field>
+                  <Field label="Mức độ"><select value={context.severity} disabled={isClosed || busy} onChange={event => changeContext('severity', event.target.value)}><option value="">Chưa xác định</option>{Object.entries(severityLabel).map(([key, label]) => <option key={key} value={key}>{key} — {label}</option>)}</select></Field>
+                  <Field label="Phạm vi truyền thông"><select value={context.scope} disabled={isClosed || busy} onChange={event => changeContext('scope', event.target.value)}><option value="">Chưa xác định</option><option value="internal">Internal</option><option value="external">External / Global</option></select></Field>
+                </div><div className="context-foot"><CircleHelp size={14}/> {incident ? 'Thay đổi được lưu ngay cho sự cố.' : 'Bạn có thể sửa gợi ý trước khi tạo sự cố.'}</div>
               </section>
               <section className="panel contacts-panel"><div className="section-title"><div><h3>Đầu mối liên hệ</h3><p>Theo dịch vụ & thị trường</p></div><button onClick={() => setPage('contacts')} className="text-link">Quản lý <ArrowRight size={13}/></button></div>
-                {service || market ? <div className="contact-list">{service && <><ContactLine label="DEV PIC" value={service.primary_contact}/><ContactLine label="DEV BACKUP" value={service.backup_contact}/></>}{market && <><ContactLine label="DEVOPS" value={market.devops}/><ContactLine label="DEVOPS BACKUP" value={market.backup}/><ContactLine label="PMO" value={market.pmo}/></>}</div> : <div className="contact-empty"><div><UsersRound size={19}/></div><p>Chọn dịch vụ và thị trường để xem các đầu mối liên quan.</p></div>}
+                {service || market ? <div className="contact-list">{service && <><ContactLine label="DEV PIC" value={service.primary_contact}/><ContactLine label="DEV BACKUP" value={service.backup_contact}/>{service.dba && <ContactLine label="DBA" value={service.dba}/>}</>}{market && <><ContactLine label="DEVOPS" value={market.devops}/><ContactLine label="DEVOPS BACKUP" value={market.backup}/><ContactLine label="PMO" value={market.pmo}/></>}</div> : <div className="contact-empty"><div><UsersRound size={19}/></div><p>Chọn dịch vụ và thị trường để xem các đầu mối liên quan.</p></div>}
               </section>
               <section className="sla-card"><div className="sla-icon"><Clock3 size={18}/></div><div><strong>Nhịp cập nhật SLA</strong><p>{next ? `Dự kiến bản tin tiếp theo lúc ${new Intl.DateTimeFormat('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' }).format(next.time)}.` : incident?.status === 'closed' ? 'Phiên sự cố đã kết thúc.' : incident ? 'Kiểm tra mức độ và phạm vi để xác định lịch SLA.' : 'Theo dõi thời điểm cập nhật sau khi tạo bản tin.'}</p><small>{next ? `${remainingMinutes <= 0 ? 'Đã đến hạn cập nhật' : `Còn ${remainingMinutes} phút`} · Tính từ lúc tạo bản tin, trước khi có solution.` : 'P3 / P4 cần ưu tiên phản hồi sớm.'}</small></div></section>
             </aside>
@@ -188,6 +238,7 @@ function App() {
         {page === 'lookup' && <Lookup data={data} setPage={setPage} toast={setToast}/>}
         {page === 'alerts' && <Alerts data={data} refresh={refresh} toast={setToast}/>}
         {page === 'contacts' && <Contacts data={data} refresh={refresh} toast={setToast}/>}
+        {page === 'settings' && <SettingsPage data={data} refresh={refresh} toast={setToast}/>}
       </main>
     </div>
     {toast && <div className="toast" role="status"><AlertCircle size={16}/>{toast}<button onClick={() => setToast('')} aria-label="Đóng"><X size={15}/></button></div>}
@@ -243,12 +294,25 @@ function Contacts({ data, refresh, toast }) {
   const [tab, setTab] = useState('services');
   const [search, setSearch] = useState('');
   const [editor, setEditor] = useState(null);
+  const importRef = useRef(null);
+  const [importing, setImporting] = useState(false);
+  async function importFile(file) {
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast('Tệp Excel không được lớn hơn 5 MB.'); return; }
+    setImporting(true);
+    try {
+      const encoded = await new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(file); });
+      const result = await api('/api/import-workbook', { method: 'POST', body: { file: encoded } });
+      await refresh();
+      toast(`Đã nhập ${result.updatedServices} dịch vụ, thêm ${result.newServices} dịch vụ và cập nhật ${result.updatedMarkets} thị trường.`);
+    } catch (error) { toast(error.message || 'Không thể đọc tệp.'); } finally { setImporting(false); }
+  }
   const records = data[tab].filter(item => Object.values(item).join(' ').toLowerCase().includes(search.toLowerCase()));
   async function remove(item) {
     if (!window.confirm(`Xóa “${item.name}”?`)) return;
     try { await api(`/api/${tab}/${item.id}`, { method: 'DELETE' }); await refresh(); toast('Đã xóa dữ liệu.'); } catch (error) { toast(error.message); }
   }
-  return <div className="content-page"><PageTitle eyebrow="CONTACT DIRECTORY" title="Dữ liệu liên hệ" description="Quản lý đầu mối dịch vụ và vận hành theo thị trường." action={<Button icon={Plus} onClick={() => setEditor({})}>{tab === 'services' ? 'Thêm dịch vụ' : 'Thêm thị trường'}</Button>}/>
+  return <div className="content-page"><PageTitle eyebrow="CONTACT DIRECTORY" title="Dữ liệu liên hệ" description="Quản lý đầu mối dịch vụ và vận hành theo thị trường." action={<div className="heading-actions"><input ref={importRef} type="file" accept=".xlsx" hidden onChange={event => { importFile(event.target.files[0]); event.target.value = ''; }}/><Button variant="outline" icon={Upload} disabled={importing} onClick={() => importRef.current?.click()}>{importing ? 'Đang nhập...' : 'Nhập Excel'}</Button><Button icon={Plus} onClick={() => setEditor({})}>{tab === 'services' ? 'Thêm dịch vụ' : 'Thêm thị trường'}</Button></div>}/>
     <div className="summary-strip"><div><span className="summary-icon blue"><Database size={19}/></span><div><strong>{data.services.length}</strong><small>Dịch vụ</small></div></div><div><span className="summary-icon purple"><Globe2 size={19}/></span><div><strong>{data.markets.length}</strong><small>Nhóm thị trường</small></div></div><p>Bổ sung và cập nhật đầu mối cho từng dịch vụ và thị trường.</p></div>
     <section className="panel library-panel"><div className="library-head"><div><h3>Danh bạ vận hành</h3><p>Thông tin PIC và đầu mối dự phòng</p></div><div className="search-input"><Search size={16}/><input placeholder="Tìm tên, dịch vụ, liên hệ..." value={search} onChange={event => setSearch(event.target.value)}/></div></div>
       <div className="tabs"><button className={tab === 'services' ? 'active' : ''} onClick={() => { setTab('services'); setSearch(''); }}>Theo dịch vụ <span>{data.services.length}</span></button><button className={tab === 'markets' ? 'active' : ''} onClick={() => { setTab('markets'); setSearch(''); }}>Theo thị trường <span>{data.markets.length}</span></button></div>
@@ -256,6 +320,31 @@ function Contacts({ data, refresh, toast }) {
     </section>{editor && <RecordEditor key={tab} kind={tab} record={editor} data={data} onClose={() => setEditor(null)} onSaved={async () => { setEditor(null); await refresh(); toast('Đã lưu dữ liệu liên hệ.'); }} toast={toast}/>}
   </div>;
 }
+function SettingsPage({ data, refresh, toast }) {
+  const [actionsText, setActionsText] = useState((data.settings?.actions || []).join('\n'));
+  const [questionsText, setQuestionsText] = useState((data.settings?.questions || []).join('\n'));
+  const [key, setKey] = useState('');
+  const [saving, setSaving] = useState(false);
+  async function save(event) {
+    event.preventDefault(); setSaving(true);
+    try {
+      await api('/api/settings', { method: 'PUT', body: { actions: actionsText.split('\n'), questions: questionsText.split('\n') } });
+      await refresh(); toast('Đã lưu cài đặt điều phối.');
+    } catch (error) { toast(error.message); } finally { setSaving(false); }
+  }
+  async function connect(event) {
+    event.preventDefault(); setSaving(true);
+    try { await api('/api/ai-key', { method: 'PUT', body: { key } }); setKey(''); await refresh(); toast('Đã cấu hình khóa cho phiên chạy hiện tại.'); }
+    catch (error) { toast(error.message); } finally { setSaving(false); }
+  }
+  return <div className="content-page"><PageTitle eyebrow="SETTINGS" title="Cài đặt chung" description="Điều chỉnh nội dung điều phối cho các sự cố mới."/>
+    <section className="panel settings-panel"><div className="section-title"><div><h3>Nội dung điều phối</h3><p>Mỗi dòng tương ứng với một nội dung. AI sẽ điều chỉnh theo ngữ cảnh sự cố.</p></div></div>
+      <form onSubmit={save} className="settings-form"><Field label="Ba việc tiếp theo" hint="Nhập đúng 3 dòng."><textarea rows={5} value={actionsText} onChange={event => setActionsText(event.target.value)}/></Field><Field label="Câu hỏi điều phối" hint="Mỗi câu hỏi trên một dòng."><textarea rows={5} value={questionsText} onChange={event => setQuestionsText(event.target.value)}/></Field><Button type="submit" disabled={saving}>Lưu cài đặt</Button></form>
+    </section>
+    <section className="panel settings-panel"><div className="section-title"><div><h3>Cấu hình AI</h3><p>Nhập khóa OpenAI để phân tích hình ảnh và biên tập nội dung. Khóa chỉ tồn tại trong phiên chạy ứng dụng.</p></div><span className="result-mode">{data.ai.enabled ? 'Đã cấu hình' : 'Chưa cấu hình'}</span></div><form onSubmit={connect} className="settings-form"><Field label="OpenAI API key"><input type="password" autoComplete="off" value={key} onChange={event => setKey(event.target.value)} placeholder="Nhập khóa cho phiên hiện tại"/></Field><Button type="submit" disabled={!key.trim() || saving}>Lưu khóa AI</Button></form></section>
+  </div>;
+}
+
 function RecordEditor({ kind, record, data, onClose, onSaved, toast }) {
   const [form, setForm] = useState({ tier: 2, ...record });
   const [saving, setSaving] = useState(false);
@@ -271,7 +360,7 @@ function RecordEditor({ kind, record, data, onClose, onSaved, toast }) {
   const title = kind === 'alerts' ? 'alert' : kind === 'services' ? 'dịch vụ' : 'thị trường';
   return <Modal title={`${record.id ? 'Chỉnh sửa' : 'Thêm'} ${title}`} subtitle="Thông tin sẽ được dùng trong quá trình điều phối và tra cứu." onClose={onClose} wide><form onSubmit={submit}>
     <div className="modal-content form-grid">
-      {kind === 'services' && <><Field label="Tên dịch vụ" required>{input('name', 'Ví dụ: Payment Service')}</Field><Field label="Tier" required><select value={form.tier} onChange={event => set('tier', event.target.value)}><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option></select></Field><Field label="Dev PIC">{input('primary_contact', 'Tên, số điện thoại hoặc email', true)}</Field><Field label="Dev backup">{input('backup_contact', 'Tên, số điện thoại hoặc email', true)}</Field></>}
+      {kind === 'services' && <><Field label="Tên dịch vụ" required>{input('name', 'Ví dụ: Payment Service')}</Field><Field label="Tier" required><select value={form.tier} onChange={event => set('tier', event.target.value)}><option value="1">Tier 1</option><option value="2">Tier 2</option><option value="3">Tier 3</option></select></Field><Field label="Dev PIC">{input('primary_contact', 'Tên, số điện thoại hoặc email', true)}</Field><Field label="Dev backup">{input('backup_contact', 'Tên, số điện thoại hoặc email', true)}</Field><Field label="DBA">{input('dba', 'Tên, số điện thoại hoặc email', true)}</Field><Field label="Tên khác / tên tiếng Việt" hint="Mỗi tên trên một dòng.">{input('aliases', 'Tên dùng để nhận diện dịch vụ', true)}</Field></>}
       {kind === 'markets' && <><Field label="Tên thị trường" required>{input('name', 'Ví dụ: Việt Nam')}</Field><Field label="Tên khác / mã thị trường" hint="Phân cách bằng dấu phẩy">{input('aliases', 'VN, Vietnam')}</Field><Field label="PMO">{input('pmo', 'Tên và liên hệ', true)}</Field><Field label="DevOps">{input('devops', 'Tên và liên hệ', true)}</Field><Field label="DevOps backup">{input('backup', 'Tên và liên hệ', true)}</Field><Field label="TechOps">{input('techops', 'Tên và liên hệ', true)}</Field><Field label="NOC">{input('noc', 'Tên và liên hệ', true)}</Field><Field label="Escalation">{input('escalation', 'Tên và liên hệ', true)}</Field></>}
       {kind === 'alerts' && <><Field label="Tên alert" required>{input('title', 'Ví dụ: CPU usage high')}</Field><Field label="Thị trường"><select value={form.market_id || ''} onChange={event => set('market_id', event.target.value)}><option value="">Tất cả thị trường</option>{data.markets.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><Field label="Dịch vụ"><select value={form.service_id || ''} onChange={event => set('service_id', event.target.value)}><option value="">Không chỉ định</option>{data.services.map(item => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field><Field label="Từ khóa bổ sung" hint="Phân cách bằng dấu phẩy">{input('keywords', 'cpu, usage, high')}</Field><div className="full-field"><Field label="Nội dung alert mẫu" required>{input('pattern', 'Dán nội dung alert để đối chiếu', true)}</Field></div><Field label="Đội phụ trách">{input('team', 'Ví dụ: DevOps / SRE')}</Field><Field label="Người hoặc kênh cần báo">{input('contact', 'Tên, số điện thoại hoặc kênh liên hệ')}</Field><div className="full-field"><Field label="Hướng xử lý" required>{input('steps', 'Các bước kiểm tra, xử lý và escalation', true)}</Field></div></>}
     </div><div className="modal-footer"><Button variant="outline" type="button" onClick={onClose}>Hủy</Button><Button type="submit" disabled={saving}>{saving ? 'Đang lưu...' : 'Lưu thông tin'}</Button></div>
