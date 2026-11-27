@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { generateReply, matchAlerts, analyzeIncident } from './assistant.js';
+import { generateReply, matchAlerts, analyzeIncident, testAIConnection } from './assistant.js';
 import { importWorkbook } from './import-workbook.js';
 import { getAIConfig, configureAI } from './ai-config.js';
 
@@ -102,6 +102,7 @@ app.put('/api/ai-key', (req, res) => {
   configureAI(provider, key, model);
   res.json({ enabled: true, provider });
 });
+app.post('/api/ai-test', async (_req, res) => res.json(await testAIConnection()));
 app.post('/api/import-workbook', async (req, res) => {
   const encoded = req.body.file;
   if (typeof encoded !== 'string' || encoded.length > 7_000_000 || !/^[A-Za-z0-9+/=]+$/.test(encoded)) return bad(res, 'Tệp Excel không hợp lệ hoặc lớn hơn 5 MB.');

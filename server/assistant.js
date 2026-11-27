@@ -67,15 +67,26 @@ async function askModel(messages, json = false) {
   });
   if (!response.ok) {
     let code = '';
-    try { code = (await response.json())?.error?.code || ''; } catch { /* HTTP status is sufficient. */ }
-    const allowed = ['insufficient_quota', 'rate_limit_exceeded', 'invalid_api_key', 'model_not_found'];
+    try { const details = (await response.json())?.error || {}; code = typeof details.code === 'string' ? details.code : (details.status || ''); } catch { /* HTTP status is sufficient. */ }
+    const allowed = ['insufficient_quota', 'rate_limit_exceeded', 'invalid_api_key', 'model_not_found', 'NOT_FOUND', 'INVALID_ARGUMENT', 'PERMISSION_DENIED', 'UNAUTHENTICATED', 'RESOURCE_EXHAUSTED'];
     const safeCode = allowed.includes(code) ? `, ${code}` : '';
-    throw new Error(`AI request failed (${response.status}${safeCode})`);
+    throw new Error(`AI request failed (${response.status}${safeCode}; ${config.provider}, ${config.model})`);
   }
   const result = await response.json();
   const content = result.choices?.[0]?.message?.content;
   if (!content || typeof content !== 'string') throw new Error('AI returned an empty response');
   return content;
+}
+
+export async function testAIConnection() {
+  if (!getAIConfig()) return { ok: false, error: 'Chưa cấu hình AI.' };
+  try {
+    await askModel([{ role: 'user', content: 'Reply OK.' }]);
+    return { ok: true };
+  } catch (error) {
+    const safe = error.message.startsWith('AI request failed (') ? error.message : 'Không thể kết nối tới nhà cung cấp AI. Kiểm tra kết nối mạng hoặc thử lại.';
+    return { ok: false, error: safe };
+  }
 }
 
 export async function generateReply(input) {
