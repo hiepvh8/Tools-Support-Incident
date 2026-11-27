@@ -96,7 +96,7 @@ function App() {
         if (controller.signal.aborted) return;
         latestAnalysis.current = { signature, result };
         setAnalysisMode(result.mode);
-        if (result.mode === 'local_error') setToast('Không thể kết nối AI. Chỉ nhận diện được các thông tin có sẵn trong văn bản.');
+        if (result.mode === 'local_error') setToast(`${result.error || 'Không thể kết nối AI'}. Chỉ nhận diện được thông tin có sẵn trong văn bản.`);
         setContext(current => {
           const next = { ...current };
           for (const field of ['service_id', 'market_id', 'severity', 'scope']) if (!manualFields.current.has(field)) next[field] = result.fields[field] || '';
@@ -158,7 +158,7 @@ function App() {
       const result = await api('/api/chat', { method: 'POST', body: { action, incident_id: incident?.id, text: draft, attachments: images, ...resolvedContext, analysis, manual_fields: [...manualFields.current], ...confirmation } });
       setIncident(result.incident); setMessages(result.messages); setContext({ service_id: result.incident.service_id || '', market_id: result.incident.market_id || '', severity: result.incident.severity === 'UNKNOWN' ? '' : result.incident.severity, scope: result.incident.scope === 'unknown' ? '' : result.incident.scope }); setDraft(''); setImages([]); setModal(null);
       await refresh();
-      if (result.mode === 'template_error') setToast('Không thể kết nối AI. Đã tạo nội dung theo mẫu để bạn tiếp tục xử lý.');
+      if (result.mode === 'template_error') setToast(`${result.error || 'Không thể kết nối AI'}. Đã tạo nội dung theo mẫu.`);
     } catch (error) { setToast(error.message); }
     finally { setBusy(false); }
   }

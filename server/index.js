@@ -307,7 +307,7 @@ app.post('/api/chat', async (req, res) => {
       if (action === 'create') for (const field of manual) recordLearning(learnedSignatures(content, analysisText), field, req.body[field], autoContext[field]);
       db.exec('COMMIT');
     } catch (error) { db.exec('ROLLBACK'); throw error; }
-    res.json({ incident: getIncident(incident.id), messages: getMessages(incident.id), mode: result.mode });
+    res.json({ incident: getIncident(incident.id), messages: getMessages(incident.id), mode: result.mode, error: result.error });
   } finally { activeIncidents.delete(incident.id); }
 });
 

@@ -61,7 +61,13 @@ async function askModel(messages, json = false) {
     body: JSON.stringify({ model: process.env.OPENAI_MODEL || 'gpt-4o-mini', messages, ...(json ? { response_format: { type: 'json_object' } } : {}) }),
     signal: AbortSignal.timeout(45000),
   });
-  if (!response.ok) throw new Error(`AI request failed (${response.status})`);
+  if (!response.ok) {
+    let code = '';
+    try { code = (await response.json())?.error?.code || ''; } catch { /* HTTP status is sufficient. */ }
+    const allowed = ['insufficient_quota', 'rate_limit_exceeded', 'invalid_api_key', 'model_not_found'];
+    const safeCode = allowed.includes(code) ? `, ${code}` : '';
+    throw new Error(`AI request failed (${response.status}${safeCode})`);
+  }
   const result = await response.json();
   const content = result.choices?.[0]?.message?.content;
   if (!content || typeof content !== 'string') throw new Error('AI returned an empty response');
@@ -87,7 +93,7 @@ export async function generateReply(input) {
     return { content: await askModel(messages), mode: 'ai' };
   } catch (error) {
     console.error('AI generation failed:', error.message);
-    return { content: fallbackReply(input), mode: 'template_error' };
+    return { content: fallbackReply(input), mode: 'template_error', error: error.message.startsWith('AI request failed (') ? error.message : 'Không thể kết nối tới OpenAI' };
   }
 }
 
@@ -107,7 +113,7 @@ export async function analyzeIncident({ text, attachments, services, markets }) 
     }, match_text: typeof parsed.match_text === 'string' ? parsed.match_text.slice(0, 160) : '' };
   } catch (error) {
     console.error('AI analysis failed:', error.message);
-    return { mode: 'local_error', fields: {}, match_text: '' };
+    return { mode: 'local_error', fields: {}, match_text: '', error: error.message.startsWith('AI request failed (') ? error.message : 'Không thể kết nối tới OpenAI' };
   }
 }
 
